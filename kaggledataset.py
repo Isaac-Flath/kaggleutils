@@ -1,14 +1,22 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
         
-def run_bash(bashCommand,return=True):
+def run_bash(bashCommand):
+    print('+'*30)
+    print(f'Running command {bashCommand}')
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
+    print(process)
+    print(output)
+    print(error)
+    print('+'*30)
     return process, output, error
 
 def update_datset(dataset_path,update_message):
     if os.path.exists(dataset_path/'.ipynb_checkpoints'): shutil.rmtree(dataset_path/'.ipynb_checkpoints')
+    if os.path.exists(dataset_path/'tmp.txt'): os.remove(dataset_path/'tmp.txt')
     bashCommand = f'''kaggle datasets version -p {dataset_path} -m "{update_message}" --dir-mode zip'''
     process, output, error = run_bash(bashCommand)
     return process, output, error
@@ -25,8 +33,8 @@ def create_dataset(dataset_path,dataset_name):
     txt = txt.replace("INSERT_TITLE_HERE",dataset_name)
     txt = txt.replace("INSERT_SLUG_HERE",dataset_name)
     with open(dataset_path/'dataset-metadata.json','w') as f: f.write(txt)  
-
-    bashCommand = f"kaggle datasets create -p {dataset_path}"
+    os.system(f"touch {dataset_path/'tmp.txt'}")
+    bashCommand = f"kaggle datasets create -p {dataset_path} -u"
     process, output, error = run_bash(bashCommand)
     return process, output, error             
 
@@ -56,21 +64,12 @@ def download_dataset(dataset_path,dataset_id,dataset_name,unzip=True):
     else: process, output, error = create_dataset(dataset_path,dataset_name)
     return process, output, error
     
-def add_library_to_dataset(library,dataset_path,pip_cmd="pip3",):
-    if not os.path.exists(dataset_path/library): os.makedirs(dataset_path/library)
-        
-    bashCommand = f"{pip_cmd} download {library} -d {dataset_path/library}")
+def add_library_to_dataset(library,dataset_path,pip_cmd="pip3",):        
+    bashCommand = f"{pip_cmd} download {library} -d {dataset_path}"
     process, output, error = run_bash(bashCommand)
-
-    print(f"In kaggle kernal you will need to run special command to install from this")
-    print(f"!pip install -Uqq {library} --no-index --find-links=file:///kaggle/input/your_dataset/")
     return process, output, error
     
-if __name__ == "__main__":
-    libraries = ['fastai','timm','torch','torchvision','huggingface']
-    for library in libraries:
-        download_dataset(Path(library),f'isaacflath/{library}',library,unzip=True)
-        add_library_to_dataset(library,Path(library))
+
         
         
     
