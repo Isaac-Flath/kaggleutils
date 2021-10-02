@@ -8,7 +8,6 @@ def run_bash(bashCommand):
     print(f'Running command {bashCommand}')
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
-    print(process)
     print(output)
     print(error)
     print('+'*30)
@@ -52,24 +51,40 @@ def download_dataset_content(dataset_id):
     if str(output).find('404') != -1: print('404: Dataset not found')
     return process, output, error
 
-def download_dataset(dataset_path,dataset_id,dataset_name,unzip=True):
+def download_dataset(dataset_path,dataset_id,dataset_name,content=True, unzip=True):
     dataset_name = dataset_id.split('/')[-1]
     process, output, error = download_dataset_metadata(dataset_path,dataset_id)
-    if str(output).find('404') == -1: 
+    if (str(output).find('404') == -1 )and content: 
         download_dataset_content(dataset_id)
         os.system(f"mv {dataset_name}.zip {dataset_path}")
         if unzip: 
                 bashCommand = f"unzip {dataset_path/(dataset_name+'.zip')} -d {dataset_path}"
                 process, output, error = run_bash(bashCommand)
     else: process, output, error = create_dataset(dataset_path,dataset_name)
-    return process, output, error
+    return output, error
     
 def add_library_to_dataset(library,dataset_path,pip_cmd="pip3",):        
     bashCommand = f"{pip_cmd} download {library} -d {dataset_path}"
     process, output, error = run_bash(bashCommand)
     return process, output, error
-    
 
+if __name__ == '__main__':
+    libraries = ['huggingface','timm','torch','torchvision','fastai']
+
+    for library in libraries: 
+        dataset_path = Path(library)
+
+        print("downloading dataset...")
+        download_dataset(dataset_path,f'isaacflath/library{library}',f'library{library}',content=False,unzip=True)
+
+
+        print("adding library...")
+        add_library_to_dataset(library,dataset_path)
+
+        print("updating dataset...")
+        update_datset(dataset_path,"UpdateLibrary")
+
+        print('+'*30)
         
         
     
